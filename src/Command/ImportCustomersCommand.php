@@ -25,14 +25,18 @@ class ImportCustomersCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('arg1', InputArgument::OPTIONAL, 'Argument description')
-            ->addOption('option1', null, InputOption::VALUE_NONE, 'Option description');
+            ->setDescription('Imports customers from a third-party API')
+            ->addOption('nationality', null, InputOption::VALUE_OPTIONAL, 'The nationality of the customers', 'AU')
+            ->addOption('results', null, InputOption::VALUE_OPTIONAL, 'The number of results to fetch', 1);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $nationality = $input->getOption('nationality');
+        $results = $input->getOption('results');
+
         $io = new SymfonyStyle($input, $output);
-        $this->dataImporter->importCustomers();
+        $this->dataImporter->importCustomers($nationality, (int) $results);
         $io->success('You have successfully imported customers.');
 
         return Command::SUCCESS;

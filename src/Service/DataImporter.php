@@ -9,16 +9,25 @@ use Symfony\Component\HttpClient\HttpClient;
 class DataImporter
 {
     private $entityManager;
+    private $apiUrl;
+    private $defaultNationality;
+    private $defaultResults;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    public function __construct(EntityManagerInterface $entityManager, string $apiUrl, string $defaultNationality, int $defaultResults)
     {
         $this->entityManager = $entityManager;
+        $this->apiUrl = $apiUrl;
+        $this->defaultNationality = $defaultNationality;
+        $this->defaultResults = $defaultResults;
     }
 
-    public function importCustomers()
+    public function importCustomers(string $nationality = null, int $results = null)
     {
+        $nationality ??= $this->defaultNationality;
+        $results ??= $this->defaultResults;
+
         $client = HttpClient::create();
-        $response = $client->request('GET', 'https://randomuser.me/api/?nat=AU&results=1');
+        $response = $client->request('GET', sprintf("%s/?nat=%s&results=%d", $this->apiUrl, $nationality, $results));
 
         $data = $response->toArray();
 
