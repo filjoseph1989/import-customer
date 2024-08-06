@@ -7,7 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
-class Customer
+class Customers
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -53,8 +53,8 @@ class Customer
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $dob = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $registeredDate = null;
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $registeredDate = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $phone = null;
@@ -240,7 +240,7 @@ class Customer
         return $this->registeredDate;
     }
 
-    public function setRegisteredDate(?string $registeredDate): static
+    public function setRegisteredDate(?\DateTimeInterface $registeredDate): static
     {
         $this->registeredDate = $registeredDate;
 
