@@ -57,7 +57,6 @@ class DataImporter
             $nationality ??= $this->defaultNationality;
             $results ??= $this->defaultResults;
 
-            // $client = HttpClient::create();
             $data = $this->fetchDataWithRetry($this->client, $nationality, $results);
 
             $importedCount = 0;
@@ -157,14 +156,21 @@ class DataImporter
 
         return true;
     }
-
-    private function fetchDataWithRetry($client, $nationality, $results, $maxRetries = 3, $retryDelay = 2): ?array
+    
+    private function fetchDataWithRetry(HttpClientInterface $client, string $nationality, int $results, int $maxRetries = 3, int $retryDelay = 2, string $httpMethod = 'GET', array $additionalParams = []): ?array
     {
         $attempt = 0;
+        $queryParams = array_merge([
+            'nat' => strtoupper($nationality),
+            'results' => $results],
+            $additionalParams
+        );
+
+        $url = sprintf("%s/?%s", $this->apiUrl, http_build_query($queryParams));
 
         while ($attempt < $maxRetries) {
             try {
-                $response = $client->request('GET', sprintf("%s/?nat=%s&results=%d", $this->apiUrl, strtoupper($nationality), $results));
+                $response = $client->request($httpMethod, $url);
                 return $response->toArray();
             } catch (\Exception $e) {
                 $this->logger->warning(sprintf('Failed to fetch data from API. Attempt %d of %d.', $attempt + 1, $maxRetries), [
