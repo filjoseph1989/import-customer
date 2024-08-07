@@ -63,6 +63,14 @@ class DataImporter
             $i = 0;
 
             foreach ($data['results'] as $userData) {
+                // Validate required fields
+                if (!$this->validateUserData($userData)) {
+                    $this->logger->error('Invalid data for user', [
+                        'userData' => $userData
+                    ]);
+                    continue;
+                }
+
                 try {
                     $customer = $this->entityManager->getRepository(Customers::class)->findOneBy(['email' => $userData['email']]);
 
@@ -123,5 +131,27 @@ class DataImporter
         } finally {
             $lock->release();
         }
+    }
+
+    private function validateUserData(array $userData): bool
+    {
+        // Basic validation
+        if (empty($userData['email']) || !filter_var($userData['email'], FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        if (empty($userData['login']['uuid']) || empty($userData['name']['first']) || empty($userData['name']['last']) || empty($userData['dob']['date']) || empty($userData['registered']['date'])) {
+            return false;
+        }
+
+        // Additional validations
+        try {
+            new \DateTime($userData['dob']['date']);
+            new \DateTime($userData['registered']['date']);
+        } catch (\Exception $e) {
+            return false;
+        }
+
+        return true;
     }
 }
