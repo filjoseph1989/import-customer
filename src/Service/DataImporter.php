@@ -19,6 +19,7 @@ class DataImporter
     private $logger;
     private $lockFactory;
     private $dataFetcher;
+    private $dataValidator;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -35,6 +36,7 @@ class DataImporter
         $this->passwordHasher = $passwordHasher;
         $this->logger = $logger;
         $this->dataFetcher = new DataFetcher($apiUrl, $client, $logger);
+        $this->dataValidator = new DataValidator();
 
         // Initialize the lock factory with the FlockStore
         $store = new FlockStore('/tmp'); // Use a suitable store
@@ -56,17 +58,19 @@ class DataImporter
 
             $data = $this->dataFetcher->fetchData($nationality, $results);
 
+            if (!$data) {
+                $this->logger->error('Failed to fetch data from API.');
+                return 'Failed to fetch data from API.';
+            }
+
             $importedCount = 0;
 
             $batchSize = 20; // Define batch size for flushing
             $i = 0;
 
             foreach ($data['results'] as $userData) {
-                // Validate required fields
-                if (!$this->validateUserData($userData)) {
-                    $this->logger->error('Invalid data for user', [
-                        'userData' => $userData
-                    ]);
+                if (!$this->dataValidator->validate($userData)) {
+                    $this->logger->error('Invalid data for user', ['userData' => $userData]);
                     continue;
                 }
 
@@ -130,27 +134,5 @@ class DataImporter
         } finally {
             $lock->release();
         }
-    }
-
-    private function validateUserData(array $userData): bool
-    {
-        // Basic validation
-        if (empty($userData['email']) || !filter_var($userData['email'], FILTER_VALIDATE_EMAIL)) {
-            return false;
-        }
-
-        if (empty($userData['login']['uuid']) || empty($userData['name']['first']) || empty($userData['name']['last']) || empty($userData['dob']['date']) || empty($userData['registered']['date'])) {
-            return false;
-        }
-
-        // Additional validations
-        try {
-            new \DateTime($userData['dob']['date']);
-            new \DateTime($userData['registered']['date']);
-        } catch (\Exception $e) {
-            return false;
-        }
-
-        return true;
     }
 }
