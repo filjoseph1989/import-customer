@@ -9,6 +9,8 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
+#[ORM\Table(name: 'customers')]
+#[ORM\UniqueConstraint(name: 'unique_email', columns: ['email'])] // Add unique constraint
 class Customers implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
