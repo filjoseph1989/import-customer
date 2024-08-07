@@ -9,6 +9,7 @@ use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\Store\FlockStore;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class DataImporter
 {
@@ -19,6 +20,7 @@ class DataImporter
     private $passwordHasher;
     private $logger;
     private $lockFactory;
+    private $client;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -26,7 +28,8 @@ class DataImporter
         string $defaultNationality,
         int $defaultResults,
         UserPasswordHasherInterface $passwordHasher,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        HttpClientInterface $client
     ) {
         $this->entityManager = $entityManager;
         $this->apiUrl = $apiUrl;
@@ -34,6 +37,7 @@ class DataImporter
         $this->defaultResults = $defaultResults;
         $this->passwordHasher = $passwordHasher;
         $this->logger = $logger;
+        $this->client = $client;
 
         // Initialize the lock factory with the FlockStore
         $store = new FlockStore('/tmp'); // Use a suitable store
@@ -53,8 +57,8 @@ class DataImporter
             $nationality ??= $this->defaultNationality;
             $results ??= $this->defaultResults;
 
-            $client = HttpClient::create();
-            $data = $this->fetchDataWithRetry($client, $nationality, $results);
+            // $client = HttpClient::create();
+            $data = $this->fetchDataWithRetry($this->client, $nationality, $results);
 
             $importedCount = 0;
 

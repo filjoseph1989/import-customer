@@ -74,6 +74,7 @@
     },
     "require-dev": {
         "kint-php/kint": "^5.1",
+        "phpunit/phpunit": "^11.3",
         "symfony/maker-bundle": "^1.60"
     }
 }
