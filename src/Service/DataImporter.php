@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Customers;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -14,19 +15,22 @@ class DataImporter
     private $defaultNationality;
     private $defaultResults;
     private $passwordHasher;
+    private $logger;
 
     public function __construct(
         EntityManagerInterface $entityManager,
         string $apiUrl,
         string $defaultNationality,
         int $defaultResults,
-        UserPasswordHasherInterface $passwordHasher
+        UserPasswordHasherInterface $passwordHasher,
+        LoggerInterface $logger
     ) {
         $this->entityManager = $entityManager;
         $this->apiUrl = $apiUrl;
         $this->defaultNationality = $defaultNationality;
         $this->defaultResults = $defaultResults;
         $this->passwordHasher = $passwordHasher;
+        $this->logger = $logger;
     }
 
     public function importCustomers(string $nationality = null, int $results = null)
@@ -38,6 +42,8 @@ class DataImporter
         $response = $client->request('GET', sprintf("%s/?nat=%s&results=%d", $this->apiUrl, $nationality, $results));
 
         $data = $response->toArray();
+
+        $importedCount = 0;
 
         foreach ($data['results'] as $userData) {
             $customer = $this->entityManager->getRepository(Customers::class)->findOneBy(['email' => $userData['email']]);
@@ -66,8 +72,17 @@ class DataImporter
             $customer->setPictureThumbnail($userData['picture']['thumbnail']);
 
             $this->entityManager->persist($customer);
+
+            $importedCount++;
         }
 
-        $this->entityManager->flush();
+        try {
+            $this->entityManager->flush();
+            $this->logger->info(sprintf('Successfully imported %d customers.', $importedCount));
+            return sprintf('Successfully imported %d customers.', $importedCount);
+        } catch (\Throwable $th) {
+            $this->logger->error('Error importing customers', [$th->getMessage()]);
+            return sprintf('Error importing customers: %s', $th->getMessage());
+        }
     }
 }

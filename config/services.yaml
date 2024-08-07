@@ -32,3 +32,4 @@ services:
             $defaultNationality: '%env(DEFAULT_NATIONALITY)%'
             $defaultResults: '%env(DEFAULT_RESULTS)%'
             $passwordHasher: '@security.password_hasher'
+            $logger: '@logger'

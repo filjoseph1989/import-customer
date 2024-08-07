@@ -1,0 +1,28 @@
+monolog:
+    handlers:
+        main:
+            type: stream
+            path: '%kernel.logs_dir%/%kernel.environment%.log'
+            level: debug
+            channels: ["!event"]
+        console:
+            type: console
+            level: debug
+        deprecation:
+            type: stream
+            path: '%kernel.logs_dir%/%kernel.environment%.deprecations.log'
+            channels: ["php"]
+        # For critical errors
+        # symfony_mailer:
+        #     type: fingers_crossed
+        #     action_level: critical
+        #     handler: symfony_mailer_buffer
+        # symfony_mailer_buffer:
+        #     type: buffer
+        #     handler: symfony_mailer_handler
+        # symfony_mailer_handler:
+        #     type: swift_mailer
+        #     from_email: 'error@example.com'
+        #     to_email: 'admin@example.com'
+        #     subject: 'Critical Error Occurred'
+        #     level: debug
