@@ -85,7 +85,10 @@ class DataImporter
             } catch (\Exception $e) {
                 $this->logger->error('Error importing customer', [
                     'email' => $userData['email'],
-                    'error' => $e->getMessage()
+                    'uuid' => $userData['login']['uuid'],
+                    'name' => sprintf('%s %s', $userData['name']['first'], $userData['name']['last']),
+                    'error' => $e->getMessage(),
+                    'stack_trace' => $e->getTraceAsString()
                 ]);
             }
         }
@@ -96,7 +99,10 @@ class DataImporter
             $this->logger->info(sprintf('Successfully imported %d customers.', $importedCount));
             return sprintf('Successfully imported %d customers.', $importedCount);
         } catch (\Throwable $th) {
-            $this->logger->error('Error during final flush', ['error' => $th->getMessage()]);
+            $this->logger->error('Error during final flush', [
+                'error' => $th->getMessage(),
+                'stack_trace' => $th->getTraceAsString()
+            ]);
             return sprintf('Error during final flush: %s', $th->getMessage());
         }
     }
