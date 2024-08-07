@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Repository\CustomerRepository;
+use App\Service\DataImporter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,10 +12,12 @@ use Symfony\Component\Routing\Attribute\Route;
 class CustomerController extends AbstractController
 {
     private $customerRepository;
+    private $dataImporter;
 
-    public function __construct(CustomerRepository $customerRepository)
+    public function __construct(CustomerRepository $customerRepository, DataImporter $dataImporter)
     {
         $this->customerRepository = $customerRepository;
+        $this->dataImporter = $dataImporter;
     }
 
     #[Route('/customer', name: 'app_customer')]
@@ -71,5 +74,16 @@ class CustomerController extends AbstractController
         ];
 
         return new JsonResponse($data);
+    }
+
+    #[Route('/import-customer/{nationality}/{results}', name: 'app_customer_create', methods: ['GET'])]
+    public function importCustomers(string $nationality = null, int $results = null): Response
+    {
+        $nationality = strtoupper($nationality);
+        $results = (int) $results;
+
+        $this->dataImporter->importCustomers($nationality, $results);
+
+        return new Response('Customers imported successfully.');
     }
 }

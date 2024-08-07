@@ -46,6 +46,8 @@ class DataImporter
                 $customer = new Customers();
             }
 
+            $hashedPassword = $this->passwordHasher->hashPassword($customer, $userData['login']['password']);
+
             $customer->setUuid($userData['login']['uuid']);
             $customer->setTitle($userData['name']['title']);
             $customer->setFirstName($userData['name']['first']);
@@ -53,7 +55,6 @@ class DataImporter
             $customer->setGender($userData['gender']);
             $customer->setEmail($userData['email']);
             $customer->setUsername($userData['login']['username']);
-            $hashedPassword = $this->passwordHasher->hashPassword($customer, $userData['login']['password']);
             $customer->setPassword($hashedPassword);
             $customer->setDob(new \DateTime($userData['dob']['date']));
             $customer->setRegisteredDate(new \DateTime($userData['registered']['date']));
