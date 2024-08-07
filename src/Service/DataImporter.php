@@ -33,6 +33,7 @@ class DataImporter
 
         foreach ($data['results'] as $userData) {
             $customer = $this->entityManager->getRepository(Customers::class)->findOneBy(['email' => $userData['email']]);
+            
             if (!$customer) {
                 $customer = new Customers();
             }
