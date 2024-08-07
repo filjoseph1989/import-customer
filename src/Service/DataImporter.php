@@ -2,7 +2,6 @@
 
 namespace App\Service;
 
-use App\Entity\Customers;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Lock\LockFactory;
@@ -15,11 +14,11 @@ class DataImporter
     private $entityManager;
     private $defaultNationality;
     private $defaultResults;
-    private $passwordHasher;
     private $logger;
     private $lockFactory;
     private $dataFetcher;
     private $dataValidator;
+    private $customerProcessor;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -33,10 +32,10 @@ class DataImporter
         $this->entityManager = $entityManager;
         $this->defaultNationality = $defaultNationality;
         $this->defaultResults = $defaultResults;
-        $this->passwordHasher = $passwordHasher;
         $this->logger = $logger;
         $this->dataFetcher = new DataFetcher($apiUrl, $client, $logger);
         $this->dataValidator = new DataValidator();
+        $this->customerProcessor = new CustomerProcessor($passwordHasher, $entityManager);
 
         // Initialize the lock factory with the FlockStore
         $store = new FlockStore('/tmp'); // Use a suitable store
@@ -63,10 +62,7 @@ class DataImporter
                 return 'Failed to fetch data from API.';
             }
 
-            $importedCount = 0;
-
-            $batchSize = 20; // Define batch size for flushing
-            $i = 0;
+            $customers = [];
 
             foreach ($data['results'] as $userData) {
                 if (!$this->dataValidator->validate($userData)) {
@@ -74,56 +70,16 @@ class DataImporter
                     continue;
                 }
 
-                try {
-                    $customer = $this->entityManager->getRepository(Customers::class)->findOneBy(['email' => $userData['email']]);
-
-                    if (!$customer) {
-                        $customer = new Customers();
-                    }
-
-                    $hashedPassword = $this->passwordHasher->hashPassword($customer, $userData['login']['password']);
-
-                    $customer->setUuid($userData['login']['uuid']);
-                    $customer->setTitle($userData['name']['title']);
-                    $customer->setFirstName($userData['name']['first']);
-                    $customer->setLastName($userData['name']['last']);
-                    $customer->setGender($userData['gender']);
-                    $customer->setEmail($userData['email']);
-                    $customer->setUsername($userData['login']['username']);
-                    $customer->setPassword($hashedPassword);
-                    $customer->setDob(new \DateTime($userData['dob']['date']));
-                    $customer->setRegisteredDate(new \DateTime($userData['registered']['date']));
-                    $customer->setPhone($userData['phone']);
-                    $customer->setCell($userData['cell']);
-                    $customer->setNat($userData['nat']);
-                    $customer->setPictureLarge($userData['picture']['large']);
-                    $customer->setPictureMedium($userData['picture']['medium']);
-                    $customer->setPictureThumbnail($userData['picture']['thumbnail']);
-
-                    $this->entityManager->persist($customer);
-                    $importedCount++;
-
-                    if (($i % $batchSize) === 0) {
-                        $this->entityManager->flush();
-                        $this->entityManager->clear(); // Detaches all objects from Doctrine to avoid memory issues
-                    }
-                    $i++;
-                } catch (\Exception $e) {
-                    $this->logger->error('Error importing customer', [
-                        'email' => $userData['email'],
-                        'uuid' => $userData['login']['uuid'],
-                        'name' => sprintf('%s %s', $userData['name']['first'], $userData['name']['last']),
-                        'error' => $e->getMessage(),
-                        'stack_trace' => $e->getTraceAsString()
-                    ]);
-                }
+                $customers[] = $this->customerProcessor->process($userData);
             }
+
+            $this->save($customers);
 
             try {
                 $this->entityManager->flush();
                 $this->entityManager->clear();
-                $this->logger->info(sprintf('Successfully imported %d customers.', $importedCount));
-                return sprintf('Successfully imported %d customers.', $importedCount);
+                $this->logger->info(sprintf('Successfully imported %d customers.', count($customers)));
+                return sprintf('Successfully imported %d customers.', count($customers));
             } catch (\Throwable $th) {
                 $this->logger->error('Error during final flush', [
                     'error' => $th->getMessage(),
@@ -133,6 +89,29 @@ class DataImporter
             }
         } finally {
             $lock->release();
+        }
+    }
+
+    public function save(array $customers, int $batchSize = 20)
+    {
+        $i = 0;
+        foreach ($customers as $customer) {
+            try {
+                $this->entityManager->persist($customer);
+                if (($i % $batchSize) === 0) {
+                    $this->entityManager->flush();
+                    $this->entityManager->clear();
+                }
+                $i++;
+            } catch (\Exception $e) {
+                $this->logger->error('Error importing customer', [
+                    'email' => $customer['email'],
+                    'uuid' => $customer['login']['uuid'],
+                    'name' => sprintf('%s %s', $customer['name']['first'], $customer['name']['last']),
+                    'error' => $e->getMessage(),
+                    'stack_trace' => $e->getTraceAsString()
+                ]);
+            }
         }
     }
 }
