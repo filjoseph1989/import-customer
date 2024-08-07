@@ -237,7 +237,11 @@ class Customers
 
     public function getRegisteredDate(): ?string
     {
-        return $this->registeredDate;
+        if ($this->registeredDate) {
+            return $this->registeredDate->format('Y-m-d H:i:s');
+        }
+
+        return null;
     }
 
     public function setRegisteredDate(?\DateTimeInterface $registeredDate): static
