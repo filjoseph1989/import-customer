@@ -54,9 +54,8 @@ class DataImporter
             $results ??= $this->defaultResults;
 
             $client = HttpClient::create();
-            $response = $client->request('GET', sprintf("%s/?nat=%s&results=%d", $this->apiUrl, $nationality, $results));
+            $data = $this->fetchDataWithRetry($client, $nationality, $results);
 
-            $data = $response->toArray();
             $importedCount = 0;
 
             $batchSize = 20; // Define batch size for flushing
@@ -153,5 +152,24 @@ class DataImporter
         }
 
         return true;
+    }
+
+    private function fetchDataWithRetry($client, $nationality, $results, $maxRetries = 3, $retryDelay = 2): ?array
+    {
+        $attempt = 0;
+
+        while ($attempt < $maxRetries) {
+            try {
+                $response = $client->request('GET', sprintf("%s/?nat=%s&results=%d", $this->apiUrl, strtoupper($nationality), $results));
+                return $response->toArray();
+            } catch (\Exception $e) {
+                $this->logger->warning(sprintf('Failed to fetch data from API. Attempt %d of %d.', $attempt + 1, $maxRetries), [
+                    'error' => $e->getMessage()
+                ]);
+                sleep($retryDelay);
+                $attempt++;
+            }
+        }
+        return null;
     }
 }
