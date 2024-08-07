@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Entity\Customers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class DataImporter
 {
@@ -12,13 +13,20 @@ class DataImporter
     private $apiUrl;
     private $defaultNationality;
     private $defaultResults;
+    private $passwordHasher;
 
-    public function __construct(EntityManagerInterface $entityManager, string $apiUrl, string $defaultNationality, int $defaultResults)
-    {
+    public function __construct(
+        EntityManagerInterface $entityManager,
+        string $apiUrl,
+        string $defaultNationality,
+        int $defaultResults,
+        UserPasswordHasherInterface $passwordHasher
+    ) {
         $this->entityManager = $entityManager;
         $this->apiUrl = $apiUrl;
         $this->defaultNationality = $defaultNationality;
         $this->defaultResults = $defaultResults;
+        $this->passwordHasher = $passwordHasher;
     }
 
     public function importCustomers(string $nationality = null, int $results = null)
@@ -33,7 +41,7 @@ class DataImporter
 
         foreach ($data['results'] as $userData) {
             $customer = $this->entityManager->getRepository(Customers::class)->findOneBy(['email' => $userData['email']]);
-            
+
             if (!$customer) {
                 $customer = new Customers();
             }
@@ -45,11 +53,8 @@ class DataImporter
             $customer->setGender($userData['gender']);
             $customer->setEmail($userData['email']);
             $customer->setUsername($userData['login']['username']);
-            $customer->setPassword($userData['login']['password']);
-            $customer->setMd5Password(md5($userData['login']['password']));
-            $customer->setSalt($userData['login']['salt']);
-            $customer->setSha1Password($userData['login']['sha1']);
-            $customer->setSha256Password($userData['login']['sha256']);
+            $hashedPassword = $this->passwordHasher->hashPassword($customer, $userData['login']['password']);
+            $customer->setPassword($hashedPassword);
             $customer->setDob(new \DateTime($userData['dob']['date']));
             $customer->setRegisteredDate(new \DateTime($userData['registered']['date']));
             $customer->setPhone($userData['phone']);

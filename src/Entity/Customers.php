@@ -5,9 +5,11 @@ namespace App\Entity;
 use App\Repository\CustomerRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
-class Customers
+class Customers implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -38,18 +40,6 @@ class Customers
     #[ORM\Column(length: 255)]
     private ?string $password = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $md5Password = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $salt = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $sha1Password = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $sha256Password = null;
-
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $dob = null;
 
@@ -73,6 +63,9 @@ class Customers
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $pictureThumbnail = null;
+
+    #[ORM\Column(type: 'json', length: 255, nullable: true)]
+    private ?array $roles = [];
 
     public function getId(): ?int
     {
@@ -175,54 +168,6 @@ class Customers
         return $this;
     }
 
-    public function getMd5Password(): ?string
-    {
-        return $this->md5Password;
-    }
-
-    public function setMd5Password(string $md5Password): static
-    {
-        $this->md5Password = $md5Password;
-
-        return $this;
-    }
-
-    public function getSalt(): ?string
-    {
-        return $this->salt;
-    }
-
-    public function setSalt(?string $salt): static
-    {
-        $this->salt = $salt;
-
-        return $this;
-    }
-
-    public function getSha1Password(): ?string
-    {
-        return $this->sha1Password;
-    }
-
-    public function setSha1Password(?string $sha1Password): static
-    {
-        $this->sha1Password = $sha1Password;
-
-        return $this;
-    }
-
-    public function getSha256Password(): ?string
-    {
-        return $this->sha256Password;
-    }
-
-    public function setSha256Password(?string $sha256Password): static
-    {
-        $this->sha256Password = $sha256Password;
-
-        return $this;
-    }
-
     public function getDob(): ?\DateTimeInterface
     {
         return $this->dob;
@@ -321,5 +266,26 @@ class Customers
         $this->pictureThumbnail = $pictureThumbnail;
 
         return $this;
+    }
+
+    public function getRoles(): array
+    {
+        return $this->roles;
+    }
+
+    public function setRoles(array $roles): static
+    {
+        $this->roles = $roles;
+
+        return $this;
+    }
+
+    public function eraseCredentials(): void
+    {
+    }
+
+    public function getUserIdentifier(): string
+    {
+        return $this->email;
     }
 }
