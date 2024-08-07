@@ -33,7 +33,7 @@ class DataImporter
         $this->logger = $logger;
     }
 
-    public function importCustomers(string $nationality = null, int $results = null)
+    public function importCustomers(string $nationality = null, int $results = null): string
     {
         $nationality ??= $this->defaultNationality;
         $results ??= $this->defaultResults;
@@ -42,47 +42,62 @@ class DataImporter
         $response = $client->request('GET', sprintf("%s/?nat=%s&results=%d", $this->apiUrl, $nationality, $results));
 
         $data = $response->toArray();
-
         $importedCount = 0;
 
+        $batchSize = 20; // Define batch size for flushing
+        $i = 0;
+
         foreach ($data['results'] as $userData) {
-            $customer = $this->entityManager->getRepository(Customers::class)->findOneBy(['email' => $userData['email']]);
+            try {
+                $customer = $this->entityManager->getRepository(Customers::class)->findOneBy(['email' => $userData['email']]);
 
-            if (!$customer) {
-                $customer = new Customers();
+                if (!$customer) {
+                    $customer = new Customers();
+                }
+
+                $hashedPassword = $this->passwordHasher->hashPassword($customer, $userData['login']['password']);
+
+                $customer->setUuid($userData['login']['uuid']);
+                $customer->setTitle($userData['name']['title']);
+                $customer->setFirstName($userData['name']['first']);
+                $customer->setLastName($userData['name']['last']);
+                $customer->setGender($userData['gender']);
+                $customer->setEmail($userData['email']);
+                $customer->setUsername($userData['login']['username']);
+                $customer->setPassword($hashedPassword);
+                $customer->setDob(new \DateTime($userData['dob']['date']));
+                $customer->setRegisteredDate(new \DateTime($userData['registered']['date']));
+                $customer->setPhone($userData['phone']);
+                $customer->setCell($userData['cell']);
+                $customer->setNat($userData['nat']);
+                $customer->setPictureLarge($userData['picture']['large']);
+                $customer->setPictureMedium($userData['picture']['medium']);
+                $customer->setPictureThumbnail($userData['picture']['thumbnail']);
+
+                $this->entityManager->persist($customer);
+                $importedCount++;
+
+                if (($i % $batchSize) === 0) {
+                    $this->entityManager->flush();
+                    $this->entityManager->clear(); // Detaches all objects from Doctrine to avoid memory issues
+                }
+                $i++;
+            } catch (\Exception $e) {
+                $this->logger->error('Error importing customer', [
+                    'email' => $userData['email'],
+                    'error' => $e->getMessage()
+                ]);
             }
-
-            $hashedPassword = $this->passwordHasher->hashPassword($customer, $userData['login']['password']);
-
-            $customer->setUuid($userData['login']['uuid']);
-            $customer->setTitle($userData['name']['title']);
-            $customer->setFirstName($userData['name']['first']);
-            $customer->setLastName($userData['name']['last']);
-            $customer->setGender($userData['gender']);
-            $customer->setEmail($userData['email']);
-            $customer->setUsername($userData['login']['username']);
-            $customer->setPassword($hashedPassword);
-            $customer->setDob(new \DateTime($userData['dob']['date']));
-            $customer->setRegisteredDate(new \DateTime($userData['registered']['date']));
-            $customer->setPhone($userData['phone']);
-            $customer->setCell($userData['cell']);
-            $customer->setNat($userData['nat']);
-            $customer->setPictureLarge($userData['picture']['large']);
-            $customer->setPictureMedium($userData['picture']['medium']);
-            $customer->setPictureThumbnail($userData['picture']['thumbnail']);
-
-            $this->entityManager->persist($customer);
-
-            $importedCount++;
         }
 
         try {
             $this->entityManager->flush();
+            $this->entityManager->clear();
             $this->logger->info(sprintf('Successfully imported %d customers.', $importedCount));
             return sprintf('Successfully imported %d customers.', $importedCount);
         } catch (\Throwable $th) {
-            $this->logger->error('Error importing customers', [$th->getMessage()]);
-            return sprintf('Error importing customers: %s', $th->getMessage());
+            $this->logger->error('Error during final flush', ['error' => $th->getMessage()]);
+            return sprintf('Error during final flush: %s', $th->getMessage());
         }
     }
 }
