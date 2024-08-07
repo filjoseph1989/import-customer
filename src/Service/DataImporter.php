@@ -5,7 +5,6 @@ namespace App\Service;
 use App\Entity\Customers;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\Store\FlockStore;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -14,13 +13,12 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class DataImporter
 {
     private $entityManager;
-    private $apiUrl;
     private $defaultNationality;
     private $defaultResults;
     private $passwordHasher;
     private $logger;
     private $lockFactory;
-    private $client;
+    private $dataFetcher;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -32,12 +30,11 @@ class DataImporter
         HttpClientInterface $client
     ) {
         $this->entityManager = $entityManager;
-        $this->apiUrl = $apiUrl;
         $this->defaultNationality = $defaultNationality;
         $this->defaultResults = $defaultResults;
         $this->passwordHasher = $passwordHasher;
         $this->logger = $logger;
-        $this->client = $client;
+        $this->dataFetcher = new DataFetcher($apiUrl, $client, $logger);
 
         // Initialize the lock factory with the FlockStore
         $store = new FlockStore('/tmp'); // Use a suitable store
@@ -57,7 +54,7 @@ class DataImporter
             $nationality ??= $this->defaultNationality;
             $results ??= $this->defaultResults;
 
-            $data = $this->fetchDataWithRetry($this->client, $nationality, $results);
+            $data = $this->dataFetcher->fetchData($nationality, $results);
 
             $importedCount = 0;
 
@@ -155,31 +152,5 @@ class DataImporter
         }
 
         return true;
-    }
-    
-    private function fetchDataWithRetry(HttpClientInterface $client, string $nationality, int $results, int $maxRetries = 3, int $retryDelay = 2, string $httpMethod = 'GET', array $additionalParams = []): ?array
-    {
-        $attempt = 0;
-        $queryParams = array_merge([
-            'nat' => strtoupper($nationality),
-            'results' => $results],
-            $additionalParams
-        );
-
-        $url = sprintf("%s/?%s", $this->apiUrl, http_build_query($queryParams));
-
-        while ($attempt < $maxRetries) {
-            try {
-                $response = $client->request($httpMethod, $url);
-                return $response->toArray();
-            } catch (\Exception $e) {
-                $this->logger->warning(sprintf('Failed to fetch data from API. Attempt %d of %d.', $attempt + 1, $maxRetries), [
-                    'error' => $e->getMessage()
-                ]);
-                sleep($retryDelay);
-                $attempt++;
-            }
-        }
-        return null;
     }
 }
