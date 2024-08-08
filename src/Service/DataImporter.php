@@ -83,7 +83,7 @@ class DataImporter
         }
     }
 
-    public function save(array $customers, int $batchSize = 20)
+    private function save(array $customers, int $batchSize = 20)
     {
         $i = 0;
         foreach ($customers as $customer) {
