@@ -20,7 +20,7 @@ class CustomerController extends AbstractController
         $this->dataImporter = $dataImporter;
     }
 
-    #[Route('/customer', name: 'app_customer')]
+    #[Route('/customers', name: 'app_customer', methods: ['GET'])]
     public function index(): JsonResponse
     {
         $customers = $this->customerRepository->findAll();
