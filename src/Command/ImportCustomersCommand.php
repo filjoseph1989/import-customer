@@ -26,16 +26,20 @@ class ImportCustomersCommand extends Command
     {
         $this
             ->setDescription('Imports customers from a third-party API')
-            ->addOption('nationality', null, InputOption::VALUE_OPTIONAL, 'The nationality of the customers', 'AU')
-            ->addOption('results', null, InputOption::VALUE_OPTIONAL, 'The number of results to fetch', 1);
+            ->addOption('nationality', null, InputOption::VALUE_OPTIONAL, 'The nationality of the customers', $_ENV['DEFAULT_NATIONALITY'] ?? 'AU')
+            ->addOption('results', null, InputOption::VALUE_OPTIONAL, 'The number of results to fetch', $_ENV['DEFAULT_RESULTS'] ?? 1);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $io = new SymfonyStyle($input, $output);
         $nationality = $input->getOption('nationality');
         $results = $input->getOption('results');
 
-        $io = new SymfonyStyle($input, $output);
+        if ($nationality === false || $results === false) {
+            $io->warning('There is no given arguments. Check .env or use --nationality and --results.');
+        }
+
         $this->dataImporter->importCustomers($nationality, (int) $results);
         $io->success('You have successfully imported customers.');
 
