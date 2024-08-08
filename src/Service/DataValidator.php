@@ -14,7 +14,7 @@ class DataValidator
             return false;
         }
 
-        if ($userData['nat'] !== 'AU' || strtolower($userData['location']['country']) != 'australia') {
+        if (strtolower($userData['nat']) !== 'au' || strtolower($userData['location']['country']) != 'australia') {
             return false;
         }
 
