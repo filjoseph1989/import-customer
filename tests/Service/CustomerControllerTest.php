@@ -70,7 +70,7 @@ class CustomerControllerTest extends WebTestCase
             ->method('findAll')
             ->willReturn([$customer]);
 
-        $this->client->request('GET', '/customer');
+        $this->client->request('GET', '/customers');
 
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
@@ -99,7 +99,7 @@ class CustomerControllerTest extends WebTestCase
             ->method('findAll')
             ->willReturn([]);
 
-        $this->client->request('GET', '/customer');
+        $this->client->request('GET', '/customers');
 
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
@@ -176,9 +176,9 @@ class CustomerControllerTest extends WebTestCase
     {
         $this->dataImporter->expects($this->once())
             ->method('importCustomers')
-            ->with('US', 10);
+            ->with('AU', 1);
 
-        $this->client->request('GET', '/import-customer/AU/10');
+        $this->client->request('GET', '/import-customer/AU/1');
 
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());

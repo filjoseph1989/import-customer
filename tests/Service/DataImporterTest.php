@@ -3,6 +3,7 @@
 namespace App\Tests\Service;
 
 use App\Entity\Customers;
+use App\Repository\CustomerRepository;
 use App\Service\DataImporter;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -21,12 +22,14 @@ class DataImporterTest extends TestCase
     private $lockFactory;
     private $httpClient;
     private $dataImporter;
+    private $customerRepository;
 
     protected function setUp(): void
     {
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->passwordHasher = $this->createMock(UserPasswordHasherInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
+        $this->customerRepository = $this->createMock(CustomerRepository::class);
 
         $store = new FlockStore('/tmp');
         $this->lockFactory = new LockFactory($store);
@@ -54,7 +57,8 @@ class DataImporterTest extends TestCase
             $defaultResults,
             $this->passwordHasher,
             $this->logger,
-            $this->httpClient
+            $this->httpClient,
+            $this->customerRepository
         );
     }
 
@@ -122,14 +126,10 @@ class DataImporterTest extends TestCase
 
     public function testImportCustomersSuccessfully()
     {
-        $this->entityManager->expects($this->atLeastOnce())
-            ->method('persist')
-            ->willReturnCallback(function ($customer) {
-                $this->assertInstanceOf(Customers::class, $customer);
-                $this->assertEquals('amy.fortin@example.com', $customer->getEmail());
-            });
-
-        $this->entityManager->expects($this->atLeastOnce())->method('flush');
+        $this->customerRepository->expects($this->once())
+            ->method('saveCustomers')
+            ->with($this->isType('array'), 20)
+            ->willReturn('Successfully imported 1 customers.');
 
         $result = $this->dataImporter->importCustomers();
 
@@ -145,10 +145,6 @@ class DataImporterTest extends TestCase
         $this->httpClient = new MockHttpClient($mockResponse);
 
         $this->dataImporter = $this->createDataImporter();
-
-        $this->entityManager->expects($this->never())->method('persist');
-
-        $this->entityManager->expects($this->never())->method('flush');
 
         $result = $this->dataImporter->importCustomers();
 
@@ -167,11 +163,9 @@ class DataImporterTest extends TestCase
 
         $this->dataImporter = $this->createDataImporter();
 
-        $this->entityManager->expects($this->never())
-            ->method('persist');
+        $this->entityManager->expects($this->never())->method('persist');
 
-        $this->entityManager->expects($this->never())
-            ->method('flush');
+        $this->entityManager->expects($this->never())->method('flush');
 
         $result = $this->dataImporter->importCustomers();
 
@@ -197,7 +191,6 @@ class DataImporterTest extends TestCase
 
     public function testImportCustomersLockFailure()
     {
-        // $lock = $this->createMock(\Symfony\Component\Lock\LockInterface::class);
         $lock = $this->createMock(\Symfony\Component\Lock\SharedLockInterface::class);
         $lock->expects($this->once())->method('acquire')->willReturn(false);
 

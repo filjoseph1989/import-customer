@@ -48,10 +48,6 @@ class DataImporter
 
     public function importCustomers(string $nationality = null, int $results = null): string
     {
-        if ($nationality == null || $results == null) {
-            return sprintf('Successfully imported 0 customers.');
-        }
-
         $lock = $this->lockFactory->createLock('import_customer_lock', 3600);
 
         if (! $lock->acquire()) {
@@ -62,6 +58,10 @@ class DataImporter
         try {
             $nationality ??= $this->defaultNationality;
             $results ??= $this->defaultResults;
+
+            if ($nationality == null || $results == null) {
+                return sprintf('Successfully imported 0 customers.');
+            }
 
             $data = $this->dataFetcher->fetchData($nationality, $results);
 
@@ -81,8 +81,13 @@ class DataImporter
                 $customers[] = $this->customerProcessor->process($userData);
             }
 
-            // return $this->save($customers);
-            return $this->customerRepository->saveCustomers($customers);
+            if (count($customers) == 0) {
+                return sprintf('Successfully imported 0 customers.');
+            }
+
+            $result = $this->customerRepository->saveCustomers($customers);
+
+            return $result;
         } finally {
             $lock->release();
         }
