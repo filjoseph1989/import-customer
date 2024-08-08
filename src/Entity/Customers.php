@@ -69,6 +69,9 @@ class Customers implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'json', length: 255, nullable: true)]
     private ?array $roles = [];
 
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $country = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -289,5 +292,17 @@ class Customers implements UserInterface, PasswordAuthenticatedUserInterface
     public function getUserIdentifier(): string
     {
         return $this->email;
+    }
+
+    public function getCountry(): ?string
+    {
+        return $this->country;
+    }
+
+    public function setCountry(?string $country): self
+    {
+        $this->country = $country;
+
+        return $this;
     }
 }

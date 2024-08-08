@@ -42,6 +42,7 @@ class CustomerProcessor
         $customer->setPhone($userData['phone']);
         $customer->setCell($userData['cell']);
         $customer->setNat($userData['nat']);
+        $customer->setCountry($userData['location']['country']);
         $customer->setPictureLarge($userData['picture']['large']);
         $customer->setPictureMedium($userData['picture']['medium']);
         $customer->setPictureThumbnail($userData['picture']['thumbnail']);
