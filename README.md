@@ -117,3 +117,12 @@ Please follow these steps carefully to ensure a smooth setup.
   ```
 
   To import customers
+
+
+#### Routes
+
+| Name                 | Method | Scheme | Host | Path                                      |
+|----------------------|--------|--------|------|-------------------------------------------|
+| app_customer         | GET    | ANY    | ANY  | /customers                                |
+| app_customer_show    | GET    | ANY    | ANY  | /customer/{id}                            |
+| app_customer_create  | GET    | ANY    | ANY  | /import-customer/{nationality}/{results}  |
