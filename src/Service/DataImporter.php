@@ -44,6 +44,10 @@ class DataImporter
 
     public function importCustomers(string $nationality = null, int $results = null): string
     {
+        if ($nationality == null || $results == null) {
+            return sprintf('Successfully imported 0 customers.');
+        }
+
         $lock = $this->lockFactory->createLock('import_customer_lock', 3600);
 
         if (! $lock->acquire()) {

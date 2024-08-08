@@ -81,8 +81,8 @@ class CustomerController extends AbstractController
     #[Route('/import-customer/{nationality}/{results}', name: 'app_customer_create', methods: ['GET'])]
     public function importCustomers(string $nationality = null, int $results = null): Response
     {
-        $nationality = strtoupper($nationality);
-        $results = (int) $results;
+        $nationality = strtoupper($nationality) ?? $_ENV['DEFAULT_NATIONALITY'];
+        $results = (int) $results ?? $_ENV['DEFAULT_RESULTS'];
 
         $this->dataImporter->importCustomers($nationality, $results);
 
