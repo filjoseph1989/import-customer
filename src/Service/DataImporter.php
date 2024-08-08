@@ -119,4 +119,9 @@ class DataImporter
             }
         }
     }
+
+    public function setLockFactory(LockFactory $lockFactory): void
+    {
+        $this->lockFactory = $lockFactory;
+    }
 }
