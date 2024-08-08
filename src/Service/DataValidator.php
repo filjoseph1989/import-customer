@@ -14,6 +14,10 @@ class DataValidator
             return false;
         }
 
+        if ($userData['nat'] !== 'AU' || strtolower($userData['location']['country']) != 'australia') {
+            return false;
+        }
+
         try {
             new \DateTime($userData['dob']['date']);
             new \DateTime($userData['registered']['date']);
