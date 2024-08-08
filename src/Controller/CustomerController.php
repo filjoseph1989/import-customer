@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Repository\CustomerRepository;
 use App\Service\DataImporter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -13,11 +14,16 @@ class CustomerController extends AbstractController
 {
     private $customerRepository;
     private $dataImporter;
+    private $params;
 
-    public function __construct(CustomerRepository $customerRepository, DataImporter $dataImporter)
-    {
+    public function __construct(
+        CustomerRepository $customerRepository,
+        DataImporter $dataImporter,
+        ParameterBagInterface $params
+    ) {
         $this->customerRepository = $customerRepository;
         $this->dataImporter = $dataImporter;
+        $this->params = $params;
     }
 
     #[Route('/customers', name: 'app_customer', methods: ['GET'])]
@@ -81,8 +87,8 @@ class CustomerController extends AbstractController
     #[Route('/import-customer/{nationality}/{results}', name: 'app_customer_create', methods: ['GET'])]
     public function importCustomers(string $nationality = null, int $results = null): Response
     {
-        $nationality = strtoupper($nationality) ?? $_ENV['DEFAULT_NATIONALITY'];
-        $results = (int) $results ?? $_ENV['DEFAULT_RESULTS'];
+        $nationality = $nationality ? strtoupper($nationality) : $this->params->get('default_nationality');
+        $results = $results ?: $this->params->get('default_results');
 
         $this->dataImporter->importCustomers($nationality, $results);
 
