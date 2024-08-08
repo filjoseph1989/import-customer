@@ -107,3 +107,13 @@ Please follow these steps carefully to ensure a smooth setup.
   ```sh
   symfony help
   ```
+
+#### Importing Customers
+
+- **import:customers**: Run the following command:
+
+  ```sh
+  php bin/console import:customers
+  ```
+
+  To import customers
