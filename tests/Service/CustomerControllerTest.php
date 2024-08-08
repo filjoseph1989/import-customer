@@ -75,8 +75,22 @@ class CustomerControllerTest extends WebTestCase
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
+
+        // Check JSON structure
         $this->assertCount(1, $data);
         $this->assertEquals('john.doe@example.com', $data[0]['email']);
+        $this->assertArrayHasKey('id', $data[0]);
+        $this->assertArrayHasKey('uuid', $data[0]);
+        $this->assertArrayHasKey('name', $data[0]);
+        $this->assertArrayHasKey('username', $data[0]);
+        $this->assertArrayHasKey('phone', $data[0]);
+        $this->assertArrayHasKey('cell', $data[0]);
+        $this->assertArrayHasKey('nat', $data[0]);
+        $this->assertArrayHasKey('country', $data[0]);
+        $this->assertArrayHasKey('gender', $data[0]);
+        $this->assertArrayHasKey('dob', $data[0]);
+        $this->assertArrayHasKey('registered', $data[0]);
+        $this->assertArrayHasKey('picture', $data[0]);
     }
 
     public function testIndexReturnsNoCustomers()
@@ -90,6 +104,8 @@ class CustomerControllerTest extends WebTestCase
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
+
+        // Check JSON structure
         $this->assertCount(0, $data);
     }
 
@@ -105,8 +121,8 @@ class CustomerControllerTest extends WebTestCase
             ->setUsername('johndoe')
             ->setPhone('123-456-7890')
             ->setCell('098-765-4321')
-            ->setNat('US')
-            ->setCountry('USA')
+            ->setNat('AU')
+            ->setCountry('Australia')
             ->setGender('male')
             ->setDob(new \DateTime('1980-01-01'))
             ->setRegisteredDate(new \DateTime('2020-01-01'))
@@ -122,7 +138,21 @@ class CustomerControllerTest extends WebTestCase
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
+
+        // Check JSON structure
         $this->assertEquals('john.doe@example.com', $data['email']);
+        $this->assertArrayHasKey('id', $data);
+        $this->assertArrayHasKey('uuid', $data);
+        $this->assertArrayHasKey('name', $data);
+        $this->assertArrayHasKey('username', $data);
+        $this->assertArrayHasKey('phone', $data);
+        $this->assertArrayHasKey('cell', $data);
+        $this->assertArrayHasKey('nat', $data);
+        $this->assertArrayHasKey('country', $data);
+        $this->assertArrayHasKey('gender', $data);
+        $this->assertArrayHasKey('dob', $data);
+        $this->assertArrayHasKey('registered', $data);
+        $this->assertArrayHasKey('picture', $data);
     }
 
     public function testShowReturnsNotFound()
@@ -137,6 +167,8 @@ class CustomerControllerTest extends WebTestCase
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
+
+        // Check JSON structure
         $this->assertEquals('Customer not found', $data['message']);
     }
 
