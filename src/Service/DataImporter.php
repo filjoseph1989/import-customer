@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Repository\CustomerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Lock\LockFactory;
@@ -19,6 +20,7 @@ class DataImporter
     private $dataFetcher;
     private $dataValidator;
     private $customerProcessor;
+    private $customerRepository;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -27,7 +29,8 @@ class DataImporter
         int $defaultResults,
         UserPasswordHasherInterface $passwordHasher,
         LoggerInterface $logger,
-        HttpClientInterface $client
+        HttpClientInterface $client,
+        CustomerRepository $customerRepository
     ) {
         $this->entityManager = $entityManager;
         $this->defaultNationality = $defaultNationality;
@@ -36,6 +39,7 @@ class DataImporter
         $this->dataFetcher = new DataFetcher($apiUrl, $client, $logger);
         $this->dataValidator = new DataValidator();
         $this->customerProcessor = new CustomerProcessor($passwordHasher, $entityManager);
+        $this->customerRepository = $customerRepository;
 
         // Initialize the lock factory with the FlockStore
         $store = new FlockStore('/tmp'); // Use a suitable store
@@ -77,50 +81,10 @@ class DataImporter
                 $customers[] = $this->customerProcessor->process($userData);
             }
 
-            return $this->save($customers);
+            // return $this->save($customers);
+            return $this->customerRepository->saveCustomers($customers);
         } finally {
             $lock->release();
-        }
-    }
-
-    private function save(array $customers, int $batchSize = 20)
-    {
-        $i = 0;
-        foreach ($customers as $customer) {
-            try {
-                $this->entityManager->persist($customer);
-                if (($i % $batchSize) === 0) {
-                    $this->entityManager->flush();
-                    $this->entityManager->clear();
-                }
-                $i++;
-            } catch (\Exception $e) {
-                $this->logger->error('Error importing customer', [
-                    'email' => $customer['email'] ?? '',
-                    'uuid' => $customer['login']['uuid'] ?? '',
-                    'name' => sprintf('%s %s', $customer['name']['first'] ?? '', $customer['name']['last'] ?? ''),
-                    'error' => $e->getMessage(),
-                    'stack_trace' => $e->getTraceAsString()
-                ]);
-            }
-        }
-
-        try {
-            if (count($customers) > 0) {
-                $this->entityManager->flush();
-                $this->entityManager->clear();
-                $this->logger->info(sprintf('Successfully imported %d customers.', count($customers)));
-                return sprintf('Successfully imported %d customers.', count($customers));
-            } else {
-                $this->logger->info(sprintf('Successfully imported 0 customers.'));
-                return sprintf('Successfully imported 0 customers.');
-            }
-        } catch (\Throwable $th) {
-            $this->logger->error('Error during final flush', [
-                'error' => $th->getMessage(),
-                'stack_trace' => $th->getTraceAsString()
-            ]);
-            return sprintf('Error during final flush: %s', $th->getMessage());
         }
     }
 
