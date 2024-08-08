@@ -76,10 +76,15 @@ class DataImporter
             $this->save($customers);
 
             try {
-                $this->entityManager->flush();
-                $this->entityManager->clear();
-                $this->logger->info(sprintf('Successfully imported %d customers.', count($customers)));
-                return sprintf('Successfully imported %d customers.', count($customers));
+                if (count($customers) > 0) {
+                    $this->entityManager->flush();
+                    $this->entityManager->clear();
+                    $this->logger->info(sprintf('Successfully imported %d customers.', count($customers)));
+                    return sprintf('Successfully imported %d customers.', count($customers));
+                } else {
+                    $this->logger->info(sprintf('Successfully imported 0 customers.'));
+                    return sprintf('Successfully imported 0 customers.');
+                }
             } catch (\Throwable $th) {
                 $this->logger->error('Error during final flush', [
                     'error' => $th->getMessage(),
@@ -105,9 +110,9 @@ class DataImporter
                 $i++;
             } catch (\Exception $e) {
                 $this->logger->error('Error importing customer', [
-                    'email' => $customer['email'],
-                    'uuid' => $customer['login']['uuid'],
-                    'name' => sprintf('%s %s', $customer['name']['first'], $customer['name']['last']),
+                    'email' => $customer['email'] ?? '',
+                    'uuid' => $customer['login']['uuid'] ?? '',
+                    'name' => sprintf('%s %s', $customer['name']['first'] ?? '', $customer['name']['last'] ?? ''),
                     'error' => $e->getMessage(),
                     'stack_trace' => $e->getTraceAsString()
                 ]);
